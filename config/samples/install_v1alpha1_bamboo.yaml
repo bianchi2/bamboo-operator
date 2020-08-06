@@ -1,0 +1,56 @@
+apiVersion: install.atlassian.com/v1alpha1
+kind: Bamboo
+metadata:
+  name: k8s-bamboo
+spec:
+  imageRepo: dchevell/bamboo
+  imageTag: "7.1"
+  jvmMinimumMemory: "1024m"
+  jvmMaximumMemory: "4096m"
+  jvmSupportRecommendedArgs:
+  containerMemRequest: "2Gi"
+  containerMemLimit: "5Gi"
+  containerCPURequest: "300m"
+  containerCPULimit: "3"
+  remoteagents:
+    enabled: true
+    replicas: 2
+    imageRepo: "yivantsov/bamboo-base-agent"
+    imageTag: "7.1"
+    wrapperJavaInitMemory: "256m"
+    wrapperJavaMaxMemory: "4096m"
+    containerMemRequest: "1Gi"
+    containerMemLimit: "4Gi"
+    containerCPURequest: "300m"
+    containerCPULimit: "2"
+    autoManagement:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      maxBuildInQueue: 1
+      replicasToAdd: 1
+      replicasToRemove: 1
+      maxIdleAgents: 2
+
+  datasource:
+    host: postgres
+    port: "5432"
+    username: bamboo
+    password: bamboo
+    database: bamboo
+  ingress:
+    host: bamboo.kubedemo.ml
+    tls: true
+  installer:
+    adminName: admin
+    adminPassword: password
+    adminFullName: Bamboo Admin
+    adminEmail: admin@bamboo.com
+    license: AAABWA0ODAoPeNqFkU9Pg0AQxe/7KUi86IFmIf2fkNgCJigUBGqi8TLFabsJLM3uQuy3l0KJ1tR42
+      9mdee/Nb2/SfaUtqp1Gxxo153QyNwzNdlLNpCYlGyg2ZTnwWYZcovvBFCu55a5SN45iL3GJXXIFm
+      VpBgdaR1cCVLOt7UDlIyYAPsrLoRVZVsUERbpdt6ZcZ5IsdNgOWbpCoEtkeJDqg0DpZ63Sq0zHpn
+      T8PTBx/PM50OurN3QBY/p9708dqtJSokCQoahSeYy3j8ElfPxiP+nMSveph8La+njbGolR4jmtQS
+      q+3RTnwdp1LbunxgC0hOwwCN7a9hU+azFwhB579sdxZIlEgFAprC7nEHkcT3fecxF3pvjGaDofT2
+      YQ0lXV5E4odcCah/bMzna0itsD26jfqvNN+QSFPAyZxUGaCHdrxbj/ttkN39z7X3BryqhUi38eO7
+      xezg8iWMCwCFB6HTAa5Z0sSD3tvJt3IkNjvrwjWAhRt9fY5hJRExctf2wrEIv8Twk0VSA==X02h1
+

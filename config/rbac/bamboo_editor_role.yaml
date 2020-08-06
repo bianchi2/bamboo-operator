@@ -1,0 +1,24 @@
+# permissions for end users to edit bambooes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bamboo-editor-role
+rules:
+- apiGroups:
+  - install.atlassian.com
+  resources:
+  - bambooes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - install.atlassian.com
+  resources:
+  - bambooes/status
+  verbs:
+  - get
