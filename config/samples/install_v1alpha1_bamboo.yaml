@@ -43,6 +43,11 @@ spec:
   ingress:
     host: bamboo.kubedemo.ml
     tls: true
+    tlsSecretName: bamboo-tls
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
   installer:
     adminName: admin
     adminPassword: password

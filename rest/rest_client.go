@@ -60,7 +60,7 @@ func DeleteAgentsById(path string, agentIds []string, base64Creds string) (err e
 	for i := range agentIds {
 		req, err := http.NewRequest("DELETE", BambooApiUrl+path+"/"+agentIds[i], nil)
 		if err != nil {
-			fmt.Println("Unable to delete agent. Error: %s", err)
+			fmt.Printf("Unable to delete agent. Error: %s\n", err)
 			return err
 		}
 		req.Header.Add("Authorization", "Basic "+base64Creds)
@@ -160,8 +160,8 @@ func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bambo
 		}
 		err = json.Unmarshal(b, &result)
 		if err != nil {
-			return err, nil
 			fmt.Println(err)
+			return err, nil
 		}
 		for i := range result {
 			for n := range names {

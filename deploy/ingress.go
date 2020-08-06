@@ -10,6 +10,16 @@ import (
 )
 
 func GetBambooIngress(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *v1beta1.Ingress {
+	annotations := bamboo.Spec.Ingress.Annotations
+	var ingressTLS []v1beta1.IngressTLS
+	if bamboo.Spec.Ingress.Tls {
+		ingressTLS = []v1beta1.IngressTLS{
+			{
+				Hosts:      []string{bamboo.Spec.Ingress.Host},
+				SecretName: bamboo.Spec.Ingress.TlsSecretName,
+			},
+		}
+	}
 	ingress := &v1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
@@ -21,19 +31,10 @@ func GetBambooIngress(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *v1be
 			Labels: map[string]string{
 				"k8s-app": bamboo.Name,
 			},
-			Annotations: map[string]string{
-				"kubernetes.io/ingress.class":              "nginx",
-				"nginx.ingress.kubernetes.io/ssl-redirect": "true",
-				"cert-manager.io/cluster-issuer":           "letsencrypt-prod",
-			},
+			Annotations: annotations,
 		},
 		Spec: v1beta1.IngressSpec{
-			TLS: []v1beta1.IngressTLS{
-				{
-					Hosts:      []string{bamboo.Spec.Ingress.Host},
-					SecretName: "bamboo-tls",
-				},
-			},
+			TLS: ingressTLS,
 			Rules: []v1beta1.IngressRule{
 				{
 					Host: bamboo.Spec.Ingress.Host,

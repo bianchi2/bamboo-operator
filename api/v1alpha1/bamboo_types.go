@@ -59,10 +59,11 @@ type Installer struct {
 }
 
 type Ingress struct {
-	Enabled       bool   `json:"enabled,omitempty"`
-	Host          string `json:"host,omitempty"`
-	Tls           bool   `json:"tls,omitempty"`
-	TlsSecretName string `json:"tlsSecretName,omitempty"`
+	Enabled       bool              `json:"enabled,omitempty"`
+	Host          string            `json:"host,omitempty"`
+	Tls           bool              `json:"tls,omitempty"`
+	TlsSecretName string            `json:"tlsSecretName,omitempty"`
+	Annotations   map[string]string `json:"annotations,omitempty"`
 }
 
 type Datasource struct {

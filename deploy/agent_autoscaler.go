@@ -30,14 +30,14 @@ func ScaleStatefulSet(r *BambooReconciler, bamboo *installv1alpha1.Bamboo, remot
 		orderedReplicas := *remoteAgentStatefulSet.Spec.Replicas - 1
 		err, lastStatefulSetAgentPod := rest.GetAgentIdByName("/agent/remote.json?online=true", []string{fmt.Sprint(orderedReplicas)}, bamboo, base64Creds)
 		if err != nil {
-			fmt.Println("Unable to get the last statefulset agent. Error: %s", err)
+			fmt.Printf("Unable to get the last statefulset agent. Error: %s\n", err)
 			return err
 		}
 		stringOrderedReplicas := fmt.Sprint(orderedReplicas)
 
 		err, agentsIdToDelete := rest.GetAgentIdByName("/agent/remote.json?online=true", []string{stringOrderedReplicas}, bamboo, base64Creds)
 		if err != nil {
-			fmt.Println("Unable to get agent IDs. Error: %s", err)
+			fmt.Printf("Unable to get agent IDs. Error: %s\n", err)
 			return err
 		}
 		_, lastStatefulSetAgentStatus := rest.GetAgentStatus("/agent/remote.json?online=true", lastStatefulSetAgentPod[0], base64Creds)
@@ -75,18 +75,18 @@ func ManageAgentPool(r *BambooReconciler, bamboo *installv1alpha1.Bamboo) (err e
 
 	err, queuesize := rest.GetQueueSize("/queue.json?expand=queuedBuilds", base64Creds)
 	if err != nil {
-		fmt.Println("Failed to get build queue size. Error: %s", err)
+		fmt.Printf("Failed to get build queue size. Error: %s\n", err)
 		return err
 	}
 	err, agentsNumber := rest.GetOnlineAgents("/agent/remote.json?online=true", base64Creds, false)
 	if err != nil {
-		fmt.Println("Failed to get online agents number. Error: %s", err)
+		fmt.Printf("Failed to get online agents number. Error: %s\n", err)
 		return err
 	}
 
 	err, idleAgentsNumber := rest.GetOnlineAgents("/agent/remote.json?online=true", base64Creds, true)
 	if err != nil {
-		fmt.Println("Failed to get online idle agents number. Error: %s", err)
+		fmt.Printf("Failed to get online idle agents number. Error: %s\n", err)
 		return err
 	}
 	err, idleAgents := rest.GetOnlineIdleAgents("/agent/remote.json?online=true", base64Creds)
