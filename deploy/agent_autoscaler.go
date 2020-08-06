@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"fmt"
 	installv1alpha1 "github.com/bianchi2/bamboo-operator/api/v1alpha1"
 	"github.com/bianchi2/bamboo-operator/rest"
@@ -9,14 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"strconv"
-	b64 "encoding/base64"
-
 )
+
 var (
 	setupLog = ctrl.Log.WithValues()
 )
 
-func ScaleStatefulSet(r *BambooReconciler,bamboo *installv1alpha1.Bamboo, remoteAgentStatefulSet appsv1.StatefulSet, bambooAPI BambooAPI) (err error) {
+func ScaleStatefulSet(r *BambooReconciler, bamboo *installv1alpha1.Bamboo, remoteAgentStatefulSet appsv1.StatefulSet, bambooAPI BambooAPI) (err error) {
 
 	base64Creds := b64.StdEncoding.EncodeToString([]byte(bamboo.Spec.Installer.AdminName + ":" + bamboo.Spec.Installer.AdminPassword))
 
@@ -29,14 +29,14 @@ func ScaleStatefulSet(r *BambooReconciler,bamboo *installv1alpha1.Bamboo, remote
 		// pod names in a stateful set start with 0
 		orderedReplicas := *remoteAgentStatefulSet.Spec.Replicas - 1
 		err, lastStatefulSetAgentPod := rest.GetAgentIdByName("/agent/remote.json?online=true", []string{fmt.Sprint(orderedReplicas)}, bamboo, base64Creds)
-		if err !=nil {
+		if err != nil {
 			fmt.Println("Unable to get the last statefulset agent. Error: %s", err)
 			return err
 		}
 		stringOrderedReplicas := fmt.Sprint(orderedReplicas)
 
 		err, agentsIdToDelete := rest.GetAgentIdByName("/agent/remote.json?online=true", []string{stringOrderedReplicas}, bamboo, base64Creds)
-		if err !=nil {
+		if err != nil {
 			fmt.Println("Unable to get agent IDs. Error: %s", err)
 			return err
 		}
@@ -66,9 +66,8 @@ func ScaleStatefulSet(r *BambooReconciler,bamboo *installv1alpha1.Bamboo, remote
 	return nil
 }
 
-
 // ManageAgentPool updates Bamboo spec with the required number of replicas
-func ManageAgentPool(r *BambooReconciler,bamboo *installv1alpha1.Bamboo) (err error){
+func ManageAgentPool(r *BambooReconciler, bamboo *installv1alpha1.Bamboo) (err error) {
 
 	base64Creds := b64.StdEncoding.EncodeToString([]byte(bamboo.Spec.Installer.AdminName + ":" + bamboo.Spec.Installer.AdminPassword))
 
@@ -98,7 +97,7 @@ func ManageAgentPool(r *BambooReconciler,bamboo *installv1alpha1.Bamboo) (err er
 
 	if idleAgents > int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents) {
 		setupLog.Info("Idle agents: " + strconv.FormatInt(idleAgents, 10))
-		setupLog.Info("Max idle agents allowed: " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents) , 10))
+		setupLog.Info("Max idle agents allowed: " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents), 10))
 		setupLog.Info("Removing " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.ReplicasToRemove), 10) + " agents")
 	}
 
@@ -111,10 +110,10 @@ func ManageAgentPool(r *BambooReconciler,bamboo *installv1alpha1.Bamboo) (err er
 			setupLog.Info("Automatic scaling of remote agents triggered. Current build queue size is: " + strconv.FormatInt(queuesize, 10))
 			replicasToAdd := bamboo.Spec.RemoteAgents.AutoManagement.ReplicasToAdd
 			setupLog.Info("Adding: " + strconv.FormatInt(int64(replicasToAdd), 10) + " agent replicas")
-			if bamboo.Spec.RemoteAgents.Replicas +1 > bamboo.Spec.RemoteAgents.AutoManagement.MaxReplicas {
-				setupLog.Info("Can't add " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.Replicas +1), 10) + " agent replicas because Max agent pool size is " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxReplicas), 10))
+			if bamboo.Spec.RemoteAgents.Replicas+1 > bamboo.Spec.RemoteAgents.AutoManagement.MaxReplicas {
+				setupLog.Info("Can't add " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.Replicas+1), 10) + " agent replicas because Max agent pool size is " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxReplicas), 10))
 			} else {
-				setupLog.Info("Total number of replicas will be: " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.Replicas) +1, 10))
+				setupLog.Info("Total number of replicas will be: " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.Replicas)+1, 10))
 				err := r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bamboo)
 				if err != nil {
 					setupLog.Error(err, "unable to get Bamboo CR")
@@ -123,7 +122,7 @@ func ManageAgentPool(r *BambooReconciler,bamboo *installv1alpha1.Bamboo) (err er
 				bamboo.Spec.RemoteAgents.Replicas = bamboo.Spec.RemoteAgents.Replicas + replicasToAdd
 				err = r.Client.Update(context.TODO(), bamboo)
 				if err != nil {
-					setupLog.Error(err, "unable to update Bamboo CR " + bamboo.Name)
+					setupLog.Error(err, "unable to update Bamboo CR "+bamboo.Name)
 					return err
 				}
 			}
@@ -135,7 +134,7 @@ func ManageAgentPool(r *BambooReconciler,bamboo *installv1alpha1.Bamboo) (err er
 			bamboo.Spec.RemoteAgents.Replicas = bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents
 			err = r.Client.Update(context.TODO(), bamboo)
 			if err != nil {
-				setupLog.Error(err, "unable to update Bamboo CR " + bamboo.Name)
+				setupLog.Error(err, "unable to update Bamboo CR "+bamboo.Name)
 				return err
 			}
 		}

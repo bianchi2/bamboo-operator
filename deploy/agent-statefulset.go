@@ -11,6 +11,28 @@ import (
 )
 
 func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *appsv1.StatefulSet {
+	agentEnv := []apiv1.EnvVar{
+		{
+			Name:  "WRAPPER_JAVA_INITMEMORY",
+			Value: bamboo.Spec.RemoteAgents.WrapperJavaInitMemory,
+		},
+		{
+			Name:  "WRAPPER_JAVA_MAXMEMORY",
+			Value: bamboo.Spec.RemoteAgents.WrapperJavaMaxMemory,
+		},
+		{
+			Name:  "BAMBOO_SERVER",
+			Value: "http://" + bamboo.Name + ":8085/agentServer/",
+		},
+		{
+			Name:  "DOCKER_HOST",
+			Value: "tcp://127.0.0.1:2375",
+		},
+	}
+	// add security token if set
+	if len(bamboo.Spec.RemoteAgents.SecurityToken) > 0 {
+		agentEnv = append(agentEnv, apiv1.EnvVar{Name: "SECURITY_TOKEN", Value: bamboo.Spec.RemoteAgents.SecurityToken})
+	}
 	var privileged bool = true
 	statefulSet := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -78,24 +100,7 @@ func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooA
 									apiv1.ResourceCPU:    resource.MustParse(bamboo.Spec.RemoteAgents.ContainerCPULimit),
 								},
 							},
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "WRAPPER_JAVA_INITMEMORY",
-									Value: bamboo.Spec.RemoteAgents.WrapperJavaInitMemory,
-								},
-								{
-									Name:  "WRAPPER_JAVA_MAXMEMORY",
-									Value: bamboo.Spec.RemoteAgents.WrapperJavaMaxMemory,
-								},
-								{
-									Name:  "BAMBOO_SERVER",
-									Value: "http://" + bamboo.Name + ":8085/agentServer/",
-								},
-								{
-									Name:  "DOCKER_HOST",
-									Value: "tcp://127.0.0.1:2375",
-								},
-							},
+							Env: agentEnv,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      bamboo.Name + "-agent-data",

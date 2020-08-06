@@ -175,8 +175,6 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// update remote agent if image or number of replicas changed in a custom resource
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name + "-agent", Namespace: bamboo.Namespace}, remoteAgentStatefulSet)
 
-
-
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
 		bambooReadyReplicas := bambooDeployment.Status.AvailableReplicas
 		if bambooReadyReplicas != 1 {
@@ -195,7 +193,7 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				setupLog.Info("Updating remote agents StatefulSet")
 				err = deploy.ScaleStatefulSet((*deploy.BambooReconciler)(r), bamboo, *remoteAgentStatefulSet, deploy.BambooAPI(bambooAPI))
 				if err != nil {
-					setupLog.Error(err, "unable to update agent StatefulSet "+ remoteAgentStatefulSet.Name)
+					setupLog.Error(err, "unable to update agent StatefulSet "+remoteAgentStatefulSet.Name)
 					return ctrl.Result{RequeueAfter: time.Second * 120}, err
 				} else {
 					return ctrl.Result{RequeueAfter: time.Second * 10}, nil
@@ -281,7 +279,7 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			bambooDeployment = deploy.GetBambooDeployment(bamboo, deploy.BambooAPI(bambooAPI))
 			err = r.Client.Update(context.TODO(), bambooDeployment)
 			if err != nil {
-				setupLog.Error(err, "unable to update deployment" + bambooDeployment.Name)
+				setupLog.Error(err, "unable to update deployment"+bambooDeployment.Name)
 			}
 		}
 	}

@@ -39,6 +39,7 @@ type RemoteAgents struct {
 	Enabled               bool   `json:"enabled,omitempty"`
 	ImageRepo             string `json:"imageRepo,omitempty"`
 	ImageTag              string `json:"imageTag,omitempty"`
+	SecurityToken         string `json:"securityToken,omitempty"`
 	WrapperJavaInitMemory string `json:"wrapperJavaInitMemory,omitempty"`
 	WrapperJavaMaxMemory  string `json:"wrapperJavaMaxMemory,omitempty"`
 	ContainerMemRequest   string `json:"containerMemRequest,omitempty"`

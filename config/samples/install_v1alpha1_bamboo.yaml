@@ -13,6 +13,7 @@ spec:
   containerCPURequest: "300m"
   containerCPULimit: "3"
   remoteagents:
+    ## not used now :)
     enabled: true
     replicas: 2
     imageRepo: "yivantsov/bamboo-base-agent"
@@ -23,6 +24,7 @@ spec:
     containerMemLimit: "4Gi"
     containerCPURequest: "300m"
     containerCPULimit: "2"
+    securityToken:
     autoManagement:
       enabled: true
       minReplicas: 2

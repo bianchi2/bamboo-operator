@@ -22,11 +22,11 @@ var (
 func GetOnlineAgents(path string, base64Creds string, idleOnly bool) (err error, number int64) {
 	var result []map[string]interface{}
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", BambooApiUrl + path, nil)
+	req, err := http.NewRequest("GET", BambooApiUrl+path, nil)
 	if err != nil {
 		return err, -1
 	}
-	req.Header.Add("Authorization", "Basic " + base64Creds)
+	req.Header.Add("Authorization", "Basic "+base64Creds)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err, -1
@@ -55,16 +55,15 @@ func GetOnlineAgents(path string, base64Creds string, idleOnly bool) (err error,
 	}
 }
 
-
 func DeleteAgentsById(path string, agentIds []string, base64Creds string) (err error) {
 	client := &http.Client{}
 	for i := range agentIds {
-		req, err := http.NewRequest("DELETE", BambooApiUrl + path + "/" + agentIds[i], nil)
+		req, err := http.NewRequest("DELETE", BambooApiUrl+path+"/"+agentIds[i], nil)
 		if err != nil {
 			fmt.Println("Unable to delete agent. Error: %s", err)
 			return err
 		}
-		req.Header.Add("Authorization", "Basic " + base64Creds)
+		req.Header.Add("Authorization", "Basic "+base64Creds)
 		setupLog.Info("Deleting agent: " + agentIds[i])
 		_, err = client.Do(req)
 		if err != nil {
@@ -81,7 +80,7 @@ func GetOnlineIdleAgents(path string, base64Creds string) (err error, number int
 	if err != nil {
 
 	}
-	req.Header.Add("Authorization", "Basic " + base64Creds)
+	req.Header.Add("Authorization", "Basic "+base64Creds)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err, -1
@@ -105,7 +104,6 @@ func GetOnlineIdleAgents(path string, base64Creds string) (err error, number int
 	}
 }
 
-
 func GetAgentStatus(path string, id string, base64Creds string) (err error, busy bool) {
 	var result []map[string]interface{}
 	client := &http.Client{}
@@ -113,7 +111,7 @@ func GetAgentStatus(path string, id string, base64Creds string) (err error, busy
 	if err != nil {
 
 	}
-	req.Header.Add("Authorization", "Basic " + base64Creds)
+	req.Header.Add("Authorization", "Basic "+base64Creds)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err, false
@@ -142,7 +140,7 @@ func GetAgentStatus(path string, id string, base64Creds string) (err error, busy
 	}
 }
 
-func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bamboo, base64Creds string) (err error, agentIds []string ) {
+func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bamboo, base64Creds string) (err error, agentIds []string) {
 	agentIds = []string{}
 	var result []map[string]interface{}
 	client := &http.Client{}
@@ -150,7 +148,7 @@ func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bambo
 	if err != nil {
 
 	}
-	req.Header.Add("Authorization", "Basic " + base64Creds)
+	req.Header.Add("Authorization", "Basic "+base64Creds)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err, agentIds
@@ -169,11 +167,10 @@ func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bambo
 			for n := range names {
 				agentName := result[i]["name"]
 				nameString := fmt.Sprintf("%v", agentName)
-				contains := strings.Contains(nameString, bamboo.Name + "-agent-" + names[n])
+				contains := strings.Contains(nameString, bamboo.Name+"-agent-"+names[n])
 				if contains {
 					id := result[i]["id"]
 					agentIds = append(agentIds, strconv.FormatFloat(id.(float64), 'f', -1, 64))
-
 
 				}
 			}
@@ -206,7 +203,7 @@ func GetQueueSize(path string, base64Creds string) (err error, queueSize int64) 
 	if err != nil {
 		fmt.Println(err)
 	}
-	req.Header.Add("Authorization", "Basic " + base64Creds)
+	req.Header.Add("Authorization", "Basic "+base64Creds)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err, -1
