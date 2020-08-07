@@ -3,56 +3,103 @@ kind: Bamboo
 metadata:
   name: k8s-bamboo
 spec:
+  # Bamboo server image
   imageRepo: dchevell/bamboo
-  imageTag: "7.1"
+  # Bamboo server tag
+  imageTag: "7.1.1"
+  # Xms for Bamboo server
   jvmMinimumMemory: "1024m"
+  # Xmx for Bamboo server
   jvmMaximumMemory: "4096m"
+  # any additional JAVA_OPTS
   jvmSupportRecommendedArgs:
+  # min RAM for Bamboo container
   containerMemRequest: "2Gi"
+  # max RAM for Bamboo server container
+  # if a container reaches this limit, it's restarted!
   containerMemLimit: "5Gi"
+  # min CPU for Bamboo container
   containerCPURequest: "300m"
+  # max CPU for Bamboo container.
+  # if a container reaches this limit throttling takes place
   containerCPULimit: "3"
   remoteagents:
-    ## not used now :)
+    # whether or not to deploy remote agents in K8s and manage them
     enabled: true
-    replicas: 2
+    # number of remote agents to create
+    replicas: 1
+    # image for the remote agent. This one is a copy of dchevell/bamboo-base-agent + docker installed
     imageRepo: "yivantsov/bamboo-base-agent"
-    imageTag: "7.1"
+    # tag for a remote agent image
+    imageTag: "7.1.1"
+    # Xms for remote agent
     wrapperJavaInitMemory: "256m"
+    # Xmx for remote agent
     wrapperJavaMaxMemory: "4096m"
+    # max RAM for Bamboo remote agent container
     containerMemRequest: "1Gi"
+    # max RAM for Bamboo remote agent container
     containerMemLimit: "4Gi"
+    # min CPU for Bamboo remote agent container
     containerCPURequest: "300m"
+    # max CPU for Bamboo remote agent container
     containerCPULimit: "2"
+    # server security token (if agent auth is enabled)
     securityToken:
     autoManagement:
+      # enabled by default.
       enabled: true
+      # not used now
       minReplicas: 2
+      # max remote agents
+      # make sure your Bamboo license allows running this amount of agents
       maxReplicas: 5
+      # max builds in queue - this will trigger agent pool auto scaling
+      # 1 means it is ok to have 1 or fewer builds
       maxBuildInQueue: 1
+      # how many replicas to add at a time. Tested only with 1. Do not change
       replicasToAdd: 1
+      # how many replicas to remove at a time. Tested only with 1. Do not change
       replicasToRemove: 1
+      # how many idle agents can run. Scaling down will happen if there are >2 idle agents AND build queue is EMPTY
       maxIdleAgents: 2
 
   datasource:
+    # postgres host. don't change
     host: postgres
+    # postgres port. don't change
     port: "5432"
+    # postgres user. user will be created
     username: bamboo
+    # postgres password. change to smth more secure :)
     password: bamboo
+    # postgres database. database will be created
     database: bamboo
+  # ingress stuff
   ingress:
+    # Bamboo server host. Make sure it is pointed to your cluster
     host: bamboo.kubedemo.ml
+    # whether or not to use TLS INgress
     tls: true
+    # your TLS secret name. If you use cert-manager, the secret will be automatically created
     tlsSecretName: bamboo-tls
+    # any ingress annotation you need. Here's an exampe for Nginx with a cert manager in use
     annotations:
       kubernetes.io/ingress.class: "nginx"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  # some info for the installer job
   installer:
+    # Bamboo admin user name (it will be created)
     adminName: admin
+    # Bamboo admin password
     adminPassword: password
+    # Bamboo admin full name
     adminFullName: Bamboo Admin
+    # Bamboo admin email
     adminEmail: admin@bamboo.com
+    # your Atlassian license
+    # please mind formatting. It needs to look exactly as in this example
     license: AAABWA0ODAoPeNqFkU9Pg0AQxe/7KUi86IFmIf2fkNgCJigUBGqi8TLFabsJLM3uQuy3l0KJ1tR42
       9mdee/Nb2/SfaUtqp1Gxxo153QyNwzNdlLNpCYlGyg2ZTnwWYZcovvBFCu55a5SN45iL3GJXXIFm
       VpBgdaR1cCVLOt7UDlIyYAPsrLoRVZVsUERbpdt6ZcZ5IsdNgOWbpCoEtkeJDqg0DpZ63Sq0zHpn

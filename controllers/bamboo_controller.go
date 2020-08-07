@@ -283,19 +283,23 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 		}
 	}
-
-	// reconcile agents based on build queue and idle agents
-	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
-	bambooReadyReplicas := bambooDeployment.Status.AvailableReplicas
-	if bambooReadyReplicas != 1 {
-		setupLog.Info("Waiting for Bamboo to load. Agent auto-scaling won't be activated")
-		time.Sleep(10 * time.Second)
+	if bamboo.Spec.RemoteAgents.Enabled {
+		// reconcile agents based on build queue and idle agents
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
-		bambooReadyReplicas = bambooDeployment.Status.AvailableReplicas
-	} else {
-		err = deploy.ManageAgentPool((*deploy.BambooReconciler)(r), bamboo)
-		if err != nil {
-			setupLog.Info("unable to use autoscaling based on build queue due to an error. Bamboo maybe starting up or is otherwise unavailable")
+		bambooReadyReplicas := bambooDeployment.Status.AvailableReplicas
+		if bambooReadyReplicas != 1 {
+			setupLog.Info("Waiting for Bamboo to load. Agent auto-scaling won't be activated")
+			time.Sleep(10 * time.Second)
+			err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
+			bambooReadyReplicas = bambooDeployment.Status.AvailableReplicas
+		} else {
+			if bamboo.Spec.RemoteAgents.AutoManagement.Enabled {
+				err = deploy.ManageAgentPool((*deploy.BambooReconciler)(r), bamboo)
+				if err != nil {
+					setupLog.Info("unable to use autoscaling based on build queue due to an error. Bamboo maybe starting up or is otherwise unavailable")
+				}
+			}
+
 		}
 	}
 

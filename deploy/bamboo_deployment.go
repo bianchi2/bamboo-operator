@@ -43,6 +43,7 @@ func GetBambooDeployment(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *a
 					},
 				},
 				Spec: apiv1.PodSpec{
+					RestartPolicy: "Always",
 					Volumes: []apiv1.Volume{
 						{
 							Name: "create-config-sh",
