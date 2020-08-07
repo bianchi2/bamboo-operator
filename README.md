@@ -4,6 +4,13 @@
 
 The project is in its pre-alpha state. A lot of things need to be changed, mainly related to Bamboo configuration and agent pool auto management.
 
+## Pre Reqs
+
+* kubectl with configured context
+* cluster admin privileges
+* at least 2 free persistent volumes (RWO)
+* ingress controller
+
 ## Kubernetes Support
 
 The operator has been tested on K8s 1.18, but will likely work on earlier versions too, since the operator does not create any special K8s objects.
