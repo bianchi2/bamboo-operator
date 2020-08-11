@@ -52,16 +52,13 @@ func ScaleDownRemoteAgents(r *deploy.BambooReconciler, bamboo *installv1alpha1.B
 				deploymentsToDelete = append(deploymentsToDelete, deploymentToDelete[0])
 		}
 	}
-
-
+  
 	// delete deployments and PVCs
 
 	for i := range deploymentsToDelete {
-
 		deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: deploymentsToDelete[i], Namespace: bamboo.Namespace}}
 		pvc := apiv1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: deploymentsToDelete[i], Namespace: bamboo.Namespace}}
 		setupLog.Info("Deleting deployment: " + deploymentsToDelete[i])
-
 		err := r.Client.Delete(context.TODO(), &deployment)
 		if err != nil {
 			setupLog.Error(err, "unable to delete deployment " + deployment.Name)
@@ -77,6 +74,7 @@ func ScaleDownRemoteAgents(r *deploy.BambooReconciler, bamboo *installv1alpha1.B
 	if err != nil {
 		return err
 	}
+
 
 	return nil
 }
