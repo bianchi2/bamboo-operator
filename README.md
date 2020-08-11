@@ -131,12 +131,13 @@ This is a VERY experimental feature, so anything can happen :) However, the curr
 * there's a limit for max number of remote agents, so the operator will respect this value
 * the operator will try to scale down agents if build queue == 0 and current number of idle agents > maxIdleAgents
 
-There's one noticeable shortcoming. Remote agents are deployed as StatefulSet replicas. While it's easy to scale up, it is not easy to scale down.
-When scaling down happens, K8s removes replicas one by one, starting with the last one. The operator will check, however, if or not this last agent in the queue is busy.
-If it is, the operator will not remove it. So, it is possible that you may end up with a large number of idle agents, just because the last agent is always busy.
-Current mechanism needs to be reworked, probably a StatefulSet needs to be replaced with pods (the operator can label pods with agent IDs after an agent is registered).
+Remote agents are K8s deployments and persistent volume claims. So, starting a new agent is creating a deployment + pvc.
+Deleting an agent is deletion of an agent in Bamboo API + deleting respective deployment and pvc.
 
-You may turn off this feature by updating your custom resource:
+Remote agent names == deployment and pvc names. Such a mapping enables having predictable deployment and pvc names which can be deleted if agents are idle.
+An agent pod has an init container with bamboo-agent.cfg that has name and UID pre-defined.
+
+You may turn off auto-scaling feature by updating your custom resource:
 
 ```
 spec:
@@ -157,5 +158,3 @@ spec:
       # enabled by default. 
       enabled: false
 ```
-
-When scaling down, the operator will delete an agent from Bamboo with a REST API call.
