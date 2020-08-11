@@ -140,6 +140,46 @@ func GetAgentStatus(path string, id string, base64Creds string) (err error, busy
 	}
 }
 
+
+func GetAgentNameById(path string, ids []string, bamboo *installv1alpha1.Bamboo, base64Creds string) (err error, agentNames []string) {
+	agentNames = []string{}
+	var result []map[string]interface{}
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", BambooApiUrl+path, nil)
+	if err != nil {
+
+	}
+	req.Header.Add("Authorization", "Basic "+base64Creds)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err, agentNames
+	} else {
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println(err)
+			return err, nil
+		}
+		err = json.Unmarshal(b, &result)
+		if err != nil {
+			fmt.Println(err)
+			return err, nil
+		}
+		for i := range result {
+			for n := range ids {
+				agentId := result[i]["id"]
+				idString := fmt.Sprintf("%v", agentId)
+				contains := strings.Contains(idString, ids[n])
+				if contains {
+					name := result[i]["name"]
+					agentNames = append(agentNames, fmt.Sprintf("%v", name))
+				}
+			}
+		}
+		defer resp.Body.Close()
+	}
+	return nil, agentNames
+}
+
 func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bamboo, base64Creds string) (err error, agentIds []string) {
 	agentIds = []string{}
 	var result []map[string]interface{}
@@ -167,7 +207,7 @@ func GetAgentIdByName(path string, names []string, bamboo *installv1alpha1.Bambo
 			for n := range names {
 				agentName := result[i]["name"]
 				nameString := fmt.Sprintf("%v", agentName)
-				contains := strings.Contains(nameString, bamboo.Name+"-agent-"+names[n])
+				contains := strings.Contains(nameString, names[n])
 				if contains {
 					id := result[i]["id"]
 					agentIds = append(agentIds, strconv.FormatFloat(id.(float64), 'f', -1, 64))

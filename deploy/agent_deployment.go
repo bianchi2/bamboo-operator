@@ -10,7 +10,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *appsv1.StatefulSet {
+func GetBambooAgentDeployment(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI, id string, uid string) *appsv1.Deployment {
+	mode := int32(0777)
 	agentEnv := []apiv1.EnvVar{
 		{
 			Name:  "WRAPPER_JAVA_INITMEMORY",
@@ -33,56 +34,96 @@ func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooA
 	if len(bamboo.Spec.RemoteAgents.SecurityToken) > 0 {
 		agentEnv = append(agentEnv, apiv1.EnvVar{Name: "SECURITY_TOKEN", Value: bamboo.Spec.RemoteAgents.SecurityToken})
 	}
-	var privileged bool = true
-	statefulSet := &appsv1.StatefulSet{
+
+	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      bamboo.Name + "-agent",
+			Name:      "remote-agent-" + id,
 			Namespace: bamboo.Namespace,
+			Labels: map[string]string{
+				"k8s-app": bamboo.Name + "-agent",
+				"id":      "remote-agent-" + id,
+			},
 		},
-		Spec: appsv1.StatefulSetSpec{
-			ServiceName: "bamboo-agent",
-			Selector: &metav1.LabelSelector{
+		Spec: appsv1.DeploymentSpec{
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RecreateDeploymentStrategyType,
+			}, Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"k8s-app": bamboo.Name + "-agent",
-				},
-			},
-			Replicas: &bamboo.Spec.RemoteAgents.Replicas,
-			VolumeClaimTemplates: []apiv1.PersistentVolumeClaim{
-				{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "PersistentVolumeClaim",
-						APIVersion: "v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      bamboo.Name + "-agent-data",
-						Namespace: bamboo.Namespace,
-					},
-					Spec: apiv1.PersistentVolumeClaimSpec{
-						AccessModes: []apiv1.PersistentVolumeAccessMode{
-							apiv1.ReadWriteOnce,
-						},
-						Resources: apiv1.ResourceRequirements{
-							Requests: apiv1.ResourceList{
-								apiv1.ResourceStorage: resource.MustParse("5Gi"),
-							},
-						},
-					},
+					"id":      "remote-agent-" + id,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"k8s-app": bamboo.Name + "-agent",
+						"id":      "remote-agent-" + id,
 					},
 				},
 				Spec: apiv1.PodSpec{
-
+					InitContainers: []apiv1.Container{
+						{
+							Name:  "create-config",
+							Image: bamboo.Spec.ImageRepo + ":" + bamboo.Spec.ImageTag,
+							Command: []string{
+								"/bin/sh",
+							},
+							Args: []string{"-c", "/tmp/create-agent-config.sh"},
+							Env: []apiv1.EnvVar{
+								{
+									Name:  "ID",
+									Value: id,
+								},
+								{
+									Name:  "UID",
+									Value: uid,
+								},
+							},
+							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      "create-agent-config-sh",
+									MountPath: "/tmp/create-agent-config.sh",
+									SubPath:   "create-agent-config.sh",
+								},
+								{
+									Name:      "bamboo-agent-cfg-xml",
+									MountPath: "/tmp/bamboo-agent.cfg.xml",
+									SubPath:   "bamboo-agent.cfg.xml",
+								},
+								{
+									Name:      "bamboo-agent-data",
+									MountPath: "/var/atlassian/application-data/bamboo-agent",
+								},
+							},
+						},
+					},
 					Volumes: []apiv1.Volume{
 						{
-							Name: bamboo.Name + "-agent-data",
+							Name: "bamboo-agent-data",
 							VolumeSource: apiv1.VolumeSource{
 								PersistentVolumeClaim: &apiv1.PersistentVolumeClaimVolumeSource{
-									ClaimName: bamboo.Name + "-agent-data",
+									ClaimName: "remote-agent-" + id,
+								},
+							},
+						},
+						{
+							Name: "create-agent-config-sh",
+							VolumeSource: apiv1.VolumeSource{
+								ConfigMap: &apiv1.ConfigMapVolumeSource{
+									DefaultMode: &mode,
+									LocalObjectReference: apiv1.LocalObjectReference{
+										Name: "create-agent-config-sh",
+									},
+								},
+							},
+						},
+						{
+							Name: "bamboo-agent-cfg-xml",
+							VolumeSource: apiv1.VolumeSource{
+								ConfigMap: &apiv1.ConfigMapVolumeSource{
+									LocalObjectReference: apiv1.LocalObjectReference{
+										Name: "bamboo-agent-cfg-xml",
+									},
 								},
 							},
 						},
@@ -104,16 +145,9 @@ func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooA
 							Env: agentEnv,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
-									Name:      bamboo.Name + "-agent-data",
+									Name:      "bamboo-agent-data",
 									MountPath: "/var/atlassian/application-data/bamboo-agent",
 								},
-							},
-						},
-						{
-							Name:  "dind",
-							Image: "docker:18-dind",
-							SecurityContext: &apiv1.SecurityContext{
-								Privileged: &privileged,
 							},
 						},
 					},
@@ -121,9 +155,9 @@ func GetBambooAgentStatefulSet(bamboo *installv1alpha1.Bamboo, bambooAPI BambooA
 			},
 		},
 	}
-	err := controllerutil.SetControllerReference(bamboo, statefulSet, bambooAPI.Scheme)
+	err := controllerutil.SetControllerReference(bamboo, deployment, bambooAPI.Scheme)
 	if err != nil {
 		fmt.Printf("An error occurred when setting controller reference: %s", err)
 	}
-	return statefulSet
+	return deployment
 }
