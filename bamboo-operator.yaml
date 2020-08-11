@@ -37,3 +37,4 @@ spec:
       containers:
         - name: bamboo-operator
           image: yivantsov/bamboo-operator:0.1.0
+          imagePullPolicy: Always
