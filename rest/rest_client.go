@@ -167,7 +167,7 @@ func GetAgentNameById(path string, ids []string, bamboo *installv1alpha1.Bamboo,
 		for i := range result {
 			for n := range ids {
 				agentId := result[i]["id"]
-				idString := fmt.Sprintf("%v", agentId)
+				idString := strconv.FormatFloat(agentId.(float64), 'f', -1, 64)
 				contains := strings.Contains(idString, ids[n])
 				if contains {
 					name := result[i]["name"]

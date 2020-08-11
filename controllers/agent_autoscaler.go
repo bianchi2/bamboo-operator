@@ -53,25 +53,29 @@ func ScaleDownRemoteAgents(r *deploy.BambooReconciler, bamboo *installv1alpha1.B
 		}
 	}
 
-	// delete agents
-	err = rest.DeleteAgentsById("/agent", agentsToDelete, base64Creds)
-	if err != nil {
-		return err
-	}
+
 	// delete deployments and PVCs
 
 	for i := range deploymentsToDelete {
 
-		deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: deploymentNames[i], Namespace: bamboo.Namespace}}
-		pvc := apiv1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: deploymentNames[i], Namespace: bamboo.Namespace}}
+		deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: deploymentsToDelete[i], Namespace: bamboo.Namespace}}
+		pvc := apiv1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: deploymentsToDelete[i], Namespace: bamboo.Namespace}}
+		setupLog.Info("Deleting deployment: " + deploymentsToDelete[i])
+
 		err := r.Client.Delete(context.TODO(), &deployment)
 		if err != nil {
 			setupLog.Error(err, "unable to delete deployment " + deployment.Name)
 		}
+		setupLog.Info("Deleting pvc: " + deploymentNames[i])
 		err = r.Client.Delete(context.TODO(), &pvc)
 		if err != nil {
 			setupLog.Error(err, "unable to delete persistent volume claim " + pvc.Name)
 		}
+	}
+	// delete agents
+	err = rest.DeleteAgentsById("/agent", agentsToDelete, base64Creds)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -106,7 +110,7 @@ func ManageAgentPool(r *deploy.BambooReconciler, bamboo *installv1alpha1.Bamboo)
 		return err
 	}
 
-	if idleAgents > int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents) {
+	if idleAgents > int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents) && queuesize == 0 {
 		setupLog.Info("Idle agents: " + strconv.FormatInt(idleAgents, 10))
 		setupLog.Info("Max idle agents allowed: " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.MaxIdleAgents), 10))
 		setupLog.Info("Removing " + strconv.FormatInt(int64(bamboo.Spec.RemoteAgents.AutoManagement.ReplicasToRemove), 10) + " agents")
