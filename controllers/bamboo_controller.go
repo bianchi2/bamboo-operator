@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"fmt"
 	"github.com/bianchi2/bamboo-operator/deploy"
 	"github.com/bianchi2/bamboo-operator/k8s"
+	"github.com/bianchi2/bamboo-operator/rest"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
+	"strconv"
 	"strings"
 	"time"
 
@@ -165,15 +168,37 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		setupLog.Error(err, "unable to create configmap "+installBambooJob.Name)
 	}
 
+	// create remote agent deployments
+
 	if bamboo.Spec.RemoteAgents.Enabled {
 		setupLog.Info("Remote agents enabled")
-		remoteAgentStatefulSet := deploy.GetBambooAgentStatefulSet(bamboo, deploy.BambooAPI(bambooAPI))
-		err = deploy.CreateRemoteAgentStatefulSet((*deploy.BambooReconciler)(r), remoteAgentStatefulSet, bamboo)
+		specAgentCount := bamboo.Spec.RemoteAgents.Replicas
+		setupLog.Info("Agents in the spec: " +  strconv.FormatInt(int64(specAgentCount), 10))
+
+		runningAgentCount, _, _, _ := GetRunningRemoteAgentDeployments(r, bamboo)
+		setupLog.Info("Agent deployments: " +  strconv.FormatInt(runningAgentCount, 10))
+		base64Creds := b64.StdEncoding.EncodeToString([]byte(bamboo.Spec.Installer.AdminName + ":" + bamboo.Spec.Installer.AdminPassword))
+		err, agentsNumber := rest.GetOnlineAgents("/agent/remote.json?online=true", base64Creds, false)
 		if err != nil {
-			setupLog.Error(err, "unable to create statefulset "+remoteAgentStatefulSet.Name)
+			setupLog.Info("Failed to get registered agents from Bamboo API")
+			agentsNumber = 0
 		}
-		// update remote agent if image or number of replicas changed in a custom resource
-		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name + "-agent", Namespace: bamboo.Namespace}, remoteAgentStatefulSet)
+		setupLog.Info("Registered agents: " +  strconv.FormatInt(agentsNumber, 10))
+
+		if int64(specAgentCount) > runningAgentCount {
+			replicasToAdd := int64(specAgentCount) - runningAgentCount
+			for i := 0; i < int(replicasToAdd); i++ {
+				err := ScaleRemoteAgents(r, bamboo, bambooAPI)
+				if err != nil {
+					setupLog.Error(err, "unable to add agent")
+				}
+
+			}
+		} else if int64(specAgentCount) < runningAgentCount {
+
+			err = ScaleDownRemoteAgents((*deploy.BambooReconciler)(r), bamboo, deploy.BambooAPI(bambooAPI), runningAgentCount )
+
+		}
 
 		err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
 		bambooReadyReplicas := bambooDeployment.Status.AvailableReplicas
@@ -183,24 +208,25 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
 			bambooReadyReplicas = bambooDeployment.Status.AvailableReplicas
 		} else {
+			_, remoteAgentImages, remoteAgentDeploymentNames, err := GetRunningRemoteAgentDeployments(r, bamboo)
 
-			if remoteAgentStatefulSet.Spec.Template.Spec.Containers[0].Image != bamboo.Spec.RemoteAgents.ImageRepo+":"+bamboo.Spec.RemoteAgents.ImageTag {
-				setupLog.Info("Updating remote agents StatefulSet image. Existing agents will be stopped and deleted")
-				_ = r.Client.Update(context.TODO(), remoteAgentStatefulSet)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: time.Second * 120}, err
 			}
-
-			if bamboo.Spec.RemoteAgents.Replicas != *remoteAgentStatefulSet.Spec.Replicas || remoteAgentStatefulSet.Spec.Template.Spec.Containers[0].Image != bamboo.Spec.RemoteAgents.ImageRepo+":"+bamboo.Spec.RemoteAgents.ImageTag {
-				setupLog.Info("Updating remote agents StatefulSet")
-				err = deploy.ScaleStatefulSet((*deploy.BambooReconciler)(r), bamboo, *remoteAgentStatefulSet, deploy.BambooAPI(bambooAPI))
-				if err != nil {
-					setupLog.Error(err, "unable to update agent StatefulSet "+remoteAgentStatefulSet.Name)
-					return ctrl.Result{RequeueAfter: time.Second * 120}, err
-				} else {
-					return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+			if remoteAgentImages[0] != bamboo.Spec.RemoteAgents.ImageRepo+":"+bamboo.Spec.RemoteAgents.ImageTag {
+				setupLog.Info("Updating remote agent deployments with new image:tag. Agents will be stopped.")
+				for i := range remoteAgentDeploymentNames {
+					agentDeployment := &appsv1.Deployment{}
+					err = r.Client.Get(context.TODO(), types.NamespacedName{Name: remoteAgentDeploymentNames[i], Namespace: bamboo.Namespace}, agentDeployment)
+					agentDeployment.Spec.Template.Spec.Containers[0].Image = bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag
+					setupLog.Info("Updating remote agent " + agentDeployment.Name + " with image " + bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag)
+					err = r.Client.Update(context.TODO(), agentDeployment)
+					if err != nil {
+						setupLog.Error(err, "unable to update deployment "+agentDeployment.Name)
+					}
 				}
 			}
 		}
-
 	}
 	err = r.Client.Get(context.TODO(), types.NamespacedName{Name: bamboo.Name, Namespace: bamboo.Namespace}, bambooDeployment)
 	currentBambooVersion := strings.SplitAfter(bambooDeployment.Spec.Template.Spec.Containers[0].Image, ":")[1]
@@ -294,7 +320,7 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			bambooReadyReplicas = bambooDeployment.Status.AvailableReplicas
 		} else {
 			if bamboo.Spec.RemoteAgents.AutoManagement.Enabled {
-				err = deploy.ManageAgentPool((*deploy.BambooReconciler)(r), bamboo)
+				err = ManageAgentPool((*deploy.BambooReconciler)(r), bamboo)
 				if err != nil {
 					setupLog.Info("unable to use autoscaling based on build queue due to an error. Bamboo maybe starting up or is otherwise unavailable")
 				}

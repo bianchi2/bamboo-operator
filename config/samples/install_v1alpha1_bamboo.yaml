@@ -27,7 +27,7 @@ spec:
     # whether or not to deploy remote agents in K8s and manage them
     enabled: true
     # number of remote agents to create
-    replicas: 1
+    replicas: 4
     # image for the remote agent. This one is a copy of dchevell/bamboo-base-agent + docker installed
     imageRepo: "yivantsov/bamboo-base-agent"
     # tag for a remote agent image

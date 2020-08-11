@@ -272,6 +272,41 @@ func GetAdministrationXMLConfigMap(bamboo *installv1alpha1.Bamboo, bambooAPI Bam
 	return administrationXMLConfigMap
 }
 
+func GetBambooAgentCfgConfigMap(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *apiv1.ConfigMap {
+	cfgXml := `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+<buildWorkingDirectory>/var/atlassian/application-data/bamboo-agent/xml-data/build-dir</buildWorkingDirectory>
+<agentUuid>UID</agentUuid>
+<agentDefinition>
+<id>ID</id>
+<name>remote-agent-NAME</name>
+<description>Remote agent on host NAME</description>
+</agentDefinition>
+</configuration>
+`
+	re := regexp.MustCompile(`\r?\n\\n`)
+	cfgXml = re.ReplaceAllString(cfgXml, " ")
+
+	configMapData := make(map[string]string, 0)
+	configMapData["bamboo-agent.cfg.xml"] = cfgXml
+	cfgXMLConfigMap := &apiv1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bamboo-agent-cfg-xml",
+			Namespace: bamboo.Namespace,
+		},
+		Data: configMapData,
+	}
+	err := controllerutil.SetControllerReference(bamboo, cfgXMLConfigMap, bambooAPI.Scheme)
+	if err != nil {
+		fmt.Printf("An error occurred when setting controller reference: %s", err)
+	}
+	return cfgXMLConfigMap
+}
+
 func GetBambooCfgConfigMap(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *apiv1.ConfigMap {
 	cfgXml := `<?xml version="1.0" encoding="UTF-8"?>
 <application-configuration>
@@ -336,7 +371,7 @@ else
 fi
 export BUILD_NUMBER=$(curl -L --silent https://packages.atlassian.com/maven-external/com/atlassian/bamboo/atlassian-bamboo/` + bamboo.Spec.ImageTag + `/atlassian-bamboo-` + bamboo.Spec.ImageTag + `.pom | grep buildNumber | cut -d'>' -f 2| cut -d'<' -f 1)
 sed -i 's/BUILD_NUMBER/'"$BUILD_NUMBER"'/' /var/atlassian/application-data/bamboo/bamboo.cfg.xml
-		`
+`
 	re := regexp.MustCompile(`\r?\t`)
 	bash = re.ReplaceAllString(bash, " ")
 
@@ -349,6 +384,44 @@ sed -i 's/BUILD_NUMBER/'"$BUILD_NUMBER"'/' /var/atlassian/application-data/bambo
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "create-config-sh",
+			Namespace: bamboo.Namespace,
+		},
+		Data: configMapData,
+	}
+	err := controllerutil.SetControllerReference(bamboo, createConfigConfigMap, bambooAPI.Scheme)
+	if err != nil {
+		fmt.Printf("An error occurred when setting controller reference: %s", err)
+	}
+	return createConfigConfigMap
+}
+
+func GetBambooCreateAgentConfigConfigMap(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI) *apiv1.ConfigMap {
+	bash := `
+#!/bin/bash
+FILE="/var/atlassian/application-data/bamboo-agent/bamboo-agent.cfg.xml"
+if [ -f "$FILE" ]; then
+	echo "$FILE exist and will not be overridden"
+else
+	# copy xml
+	cp /tmp/bamboo-agent.cfg.xml /var/atlassian/application-data/bamboo-agent/bamboo-agent.cfg.xml
+fi
+export BUILD_NUMBER=$(curl -L --silent https://packages.atlassian.com/maven-external/com/atlassian/bamboo/atlassian-bamboo/` + bamboo.Spec.ImageTag + `/atlassian-bamboo-` + bamboo.Spec.ImageTag + `.pom | grep buildNumber | cut -d'>' -f 2| cut -d'<' -f 1)
+sed -i "s/UID/${UID}/g" /var/atlassian/application-data/bamboo-agent/bamboo-agent.cfg.xml
+sed -i "s/ID/${ID}/g" /var/atlassian/application-data/bamboo-agent/bamboo-agent.cfg.xml
+sed -i "s/NAME/${ID}/g" /var/atlassian/application-data/bamboo-agent/bamboo-agent.cfg.xml
+`
+	re := regexp.MustCompile(`\r?\t`)
+	bash = re.ReplaceAllString(bash, " ")
+
+	configMapData := make(map[string]string, 0)
+	configMapData["create-agent-config.sh"] = bash
+	createConfigConfigMap := &apiv1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "create-agent-config-sh",
 			Namespace: bamboo.Namespace,
 		},
 		Data: configMapData,

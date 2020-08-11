@@ -37,3 +37,15 @@ func GeneratePasswd(stringLength int) (passwd string) {
 	passwd = string(buf)
 	return passwd
 }
+
+func GenerateId(stringLength int) (passwd string) {
+	rand.Seed(time.Now().UnixNano())
+	chars := []rune("0123456789")
+	length := stringLength
+	buf := make([]rune, length)
+	for i := range buf {
+		buf[i] = chars[rand.Intn(len(chars))]
+	}
+	passwd = string(buf)
+	return passwd
+}
