@@ -11,6 +11,7 @@ import (
 )
 
 func GetBambooAgentDeployment(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAPI, id string, uid string) *appsv1.Deployment {
+	var privileged bool = true
 	mode := int32(0777)
 	agentEnv := []apiv1.EnvVar{
 		{
@@ -129,6 +130,20 @@ func GetBambooAgentDeployment(bamboo *installv1alpha1.Bamboo, bambooAPI BambooAP
 						},
 					},
 					Containers: []apiv1.Container{
+						{
+							Name:  "dind",
+							Image: "docker:18-dind",
+							SecurityContext: &apiv1.SecurityContext{
+								Privileged: &privileged,
+							},
+							VolumeMounts: []apiv1.VolumeMount{
+								{
+									Name:      "bamboo-agent-data",
+									MountPath: "/var/atlassian/application-data/bamboo-agent",
+								},
+							},
+
+						},
 						{
 							Name:  bamboo.Name + "-agent",
 							Image: bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag,

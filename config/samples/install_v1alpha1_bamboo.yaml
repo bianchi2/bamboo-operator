@@ -6,7 +6,7 @@ spec:
   # Bamboo server image
   imageRepo: dchevell/bamboo
   # Bamboo server tag
-  imageTag: "7.1.1"
+  imageTag: "7.1.2"
   # Xms for Bamboo server
   jvmMinimumMemory: "1024m"
   # Xmx for Bamboo server
@@ -27,7 +27,7 @@ spec:
     # whether or not to deploy remote agents in K8s and manage them
     enabled: true
     # number of remote agents to create
-    replicas: 2
+    replicas: 1
     # image for the remote agent. This one is a copy of dchevell/bamboo-base-agent + docker installed
     imageRepo: "yivantsov/bamboo-base-agent"
     # tag for a remote agent image
@@ -50,7 +50,7 @@ spec:
       # enabled by default.
       enabled: true
       # not used now
-      minReplicas: 2
+      minReplicas: 1
       # max remote agents
       # make sure your Bamboo license allows running this amount of agents
       maxReplicas: 5
@@ -78,7 +78,7 @@ spec:
   # ingress stuff
   ingress:
     # Bamboo server host. Make sure it is pointed to your cluster
-    host: bamboo.kubedemo.ml
+    host: ci.kubedemo.ga
     # whether or not to use TLS INgress
     tls: true
     # your TLS secret name. If you use cert-manager, the secret will be automatically created
@@ -100,11 +100,11 @@ spec:
     adminEmail: admin@bamboo.com
     # your Atlassian license
     # please mind formatting. It needs to look exactly as in this example
-    license: AAABWA0ODAoPeNqFkU9Pg0AQxe/7KUi86IFmIf2fkNgCJigUBGqi8TLFabsJLM3uQuy3l0KJ1tR42
-      9mdee/Nb2/SfaUtqp1Gxxo153QyNwzNdlLNpCYlGyg2ZTnwWYZcovvBFCu55a5SN45iL3GJXXIFm
-      VpBgdaR1cCVLOt7UDlIyYAPsrLoRVZVsUERbpdt6ZcZ5IsdNgOWbpCoEtkeJDqg0DpZ63Sq0zHpn
-      T8PTBx/PM50OurN3QBY/p9708dqtJSokCQoahSeYy3j8ElfPxiP+nMSveph8La+njbGolR4jmtQS
-      q+3RTnwdp1LbunxgC0hOwwCN7a9hU+azFwhB579sdxZIlEgFAprC7nEHkcT3fecxF3pvjGaDofT2
-      YQ0lXV5E4odcCah/bMzna0itsD26jfqvNN+QSFPAyZxUGaCHdrxbj/ttkN39z7X3BryqhUi38eO7
-      xezg8iWMCwCFB6HTAa5Z0sSD3tvJt3IkNjvrwjWAhRt9fY5hJRExctf2wrEIv8Twk0VSA==X02h1
+    license: AAABVw0ODAoPeNqFkVFvgjAUhd/7K0j2sj1gChpZTEim0AcSBAcGs2UvV7y6JtCatpD578dQsrm47
+      K23vfecc7/ebXBnpaWxqGfR8YxOZ2PXCsK15VKXki3UWylHMS9RaGQ7brgUPkvWLFtlUc5IIIWB0
+      iRQo3/iLQijZfsEpgKtOYhRKetBJGnqLap0v+jLWJZQzQ/YDfi2Q1aNKt9BYwgG/S9r26E29cjg/
+      HHk6vTj0bHpdDBnS+DVf+5dH2/RN6pBkqNqUUWhv3DnY9sLCma/Fs+RXWyKl9tpM6ylwUtch1J6u
+      21VgejXuea2Ph2xJxSkyyXLgmgeky6zMChAlH8sd5HIDSiDyt9DpXHA0UWPozBniR07U2fySCce6
+      Sr/+iZVBxBcQ/9nFzp7QwKF/dVv1NVZu0ClvwZcEqIuFT/24+f9rPszuoe3mcVaqJpeiHwfz3w/A
+      TL0yCMwLQIVAJFhLN2z2YpTiW+LqtD5DDFs8U6JAhRIm16zCp/rE6pY26HxEVFil7kG9Q==X02h1
 

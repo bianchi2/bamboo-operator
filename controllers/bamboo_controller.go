@@ -73,6 +73,7 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// deploy Postgres
+	//k8s.K8sclient.GetMetrics()
 
 	postgresPVC := deploy.GetPVC(bamboo, "postgres-data", deploy.BambooAPI(bambooAPI))
 	err = deploy.CreatePVC((*deploy.BambooReconciler)(r), postgresPVC, bamboo)
@@ -218,7 +219,7 @@ func (r *BambooReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				for i := range remoteAgentDeploymentNames {
 					agentDeployment := &appsv1.Deployment{}
 					err = r.Client.Get(context.TODO(), types.NamespacedName{Name: remoteAgentDeploymentNames[i], Namespace: bamboo.Namespace}, agentDeployment)
-					agentDeployment.Spec.Template.Spec.Containers[0].Image = bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag
+					agentDeployment.Spec.Template.Spec.Containers[1].Image = bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag
 					setupLog.Info("Updating remote agent " + agentDeployment.Name + " with image " + bamboo.Spec.RemoteAgents.ImageRepo + ":" + bamboo.Spec.RemoteAgents.ImageTag)
 					err = r.Client.Update(context.TODO(), agentDeployment)
 					if err != nil {

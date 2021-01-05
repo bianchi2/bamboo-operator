@@ -2,14 +2,17 @@ package k8s
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	metrics "k8s.io/metrics/pkg/client/clientset/versioned"
 )
 
 type k8s struct {
@@ -93,4 +96,11 @@ func (cl *k8s) RunExec(command []string, podName, namespace string) (string, str
 	}
 
 	return stdout.String(), stderr.String(), nil
+}
+
+func (cl *k8s) GetMetrics()   {
+	cfg, _ := config.GetConfig()
+	metrics, _ := metrics.NewForConfig(cfg)
+	podMetrics, _ := metrics.MetricsV1beta1().PodMetricses("atl").List(context.TODO(), metav1.ListOptions{})
+	fmt.Println(podMetrics)
 }
